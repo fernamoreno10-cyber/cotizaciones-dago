@@ -286,15 +286,32 @@ let respuestas={};
 let noStock={};
 
 // ── Helpers ──
+async function sbFetch(url,opts={},retries=3){
+  for(let i=0;i<retries;i++){
+    try{
+      const r=await fetch(url,opts);
+      if(!r.ok){
+        const txt=await r.text().catch(()=>'');
+        if(r.status>=500&&i<retries-1){await new Promise(t=>setTimeout(t,1000*(i+1)));continue}
+        throw new Error(`HTTP ${r.status}: ${txt||r.statusText}`);
+      }
+      return r;
+    }catch(e){
+      if(e.message.startsWith('HTTP '))throw e;
+      if(i<retries-1){await new Promise(t=>setTimeout(t,1000*(i+1)));continue}
+      throw e;
+    }
+  }
+}
 async function sbGet(table,filter=''){
-  const r=await fetch(`${SB_URL}/rest/v1/${table}?${filter}&limit=1`,{
+  const r=await sbFetch(`${SB_URL}/rest/v1/${table}?${filter}&limit=1`,{
     headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
   });
   const d=await r.json();
   return Array.isArray(d)?d[0]:null;
 }
 async function sbInsert(table,data){
-  const r=await fetch(`${SB_URL}/rest/v1/${table}`,{
+  const r=await sbFetch(`${SB_URL}/rest/v1/${table}`,{
     method:'POST',
     headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
     body:JSON.stringify(data)
@@ -302,12 +319,12 @@ async function sbInsert(table,data){
   return r.json();
 }
 async function sbUpdate(table,filter,data){
-  const r=await fetch(`${SB_URL}/rest/v1/${table}?${filter}`,{
+  const r=await sbFetch(`${SB_URL}/rest/v1/${table}?${filter}`,{
     method:'PATCH',
     headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
     body:JSON.stringify(data)
   });
-  return r.ok;
+  return true;
 }
 
 // ── Leer TOKEN del URL ──
@@ -329,7 +346,11 @@ async function cargar(){
     if(solicitud.estado==='respondida'){mostrarEnviado();return}
     renderForm();
   }catch(e){
-    mostrarError('Error de conexión','No se pudo cargar la cotización. Verifica tu conexión e intenta de nuevo.');
+    console.error('Error cargando cotización:',e);
+    const detalle=e.message&&e.message.startsWith('HTTP ')?e.message:'Sin conexión al servidor';
+    mostrarError('Error de conexión',`No se pudo cargar la cotización.<br><small style="opacity:.6">${detalle}</small>`);
+    document.querySelector('.error-state')?.insertAdjacentHTML('beforeend',
+      `<button onclick="location.reload()" style="margin-top:20px;padding:12px 32px;background:var(--acc);color:#000;border:none;border-radius:10px;font-weight:600;font-size:15px;cursor:pointer">Reintentar</button>`);
   }
 }
 
