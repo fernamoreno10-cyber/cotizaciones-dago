@@ -305,7 +305,7 @@ async function sbFetch(url,opts={},retries=3){
 }
 async function sbGet(table,filter=''){
   const r=await sbFetch(`${SB_URL}/rest/v1/${table}?${filter}&limit=1`,{
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Accept-Profile':'repo'}
   });
   const d=await r.json();
   return Array.isArray(d)?d[0]:null;
@@ -313,7 +313,7 @@ async function sbGet(table,filter=''){
 async function sbInsert(table,data){
   const r=await sbFetch(`${SB_URL}/rest/v1/${table}`,{
     method:'POST',
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation','Content-Profile':'repo','Accept-Profile':'repo'},
     body:JSON.stringify(data)
   });
   return r.json();
@@ -321,7 +321,7 @@ async function sbInsert(table,data){
 async function sbUpdate(table,filter,data){
   const r=await sbFetch(`${SB_URL}/rest/v1/${table}?${filter}`,{
     method:'PATCH',
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Content-Profile':'repo','Accept-Profile':'repo'},
     body:JSON.stringify(data)
   });
   return true;
