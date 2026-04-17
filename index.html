@@ -513,7 +513,7 @@ function renderProd(p,i){
 }
 
 function onCantChange(i,el){
-  const v=parseInt(el.value)||1;
+  const v=Number(el.value)||0;
   solicitud.productos[i].cantidadRef=v;
   actualizarTotal();
 }
@@ -595,16 +595,24 @@ function actualizarProgreso(){
   const btn=document.getElementById('submitBtn');
   if(btn)btn.disabled=completados===0;
 }
+// ── Cantidad efectiva: lee del input, fallback al cantidadRef original. Nunca default 1. ──
+function _cantEfect(i,p){
+  const inp=document.getElementById('cant-'+i);
+  const v=inp?Number(inp.value):NaN;
+  if(Number.isFinite(v)&&v>0)return v;
+  return Number(p&&p.cantidadRef)||0;
+}
 function actualizarTotal(){
   const prods=solicitud.productos||[];
   let total=0;let hayPrecios=false;
   prods.forEach((p,i)=>{
-    const precio=parseFloat(document.getElementById('precio-'+i)?.value)||0;
-    const cant=parseFloat(document.getElementById('cant-'+i)?.value)||parseFloat(p.cantidadRef)||1;
-    if(precio>0){total+=precio*cant;hayPrecios=true}
+    const precio=Number(document.getElementById('precio-'+i)?.value)||0;
+    const cant=_cantEfect(i,p);
+    if(precio>0&&cant>0){total+=precio*cant;hayPrecios=true}
   });
   productosExtra.forEach(p=>{
-    if(p.precio>0){total+=p.precio*(p.cantidad||1);hayPrecios=true}
+    const cant=Number(p.cantidad)||0;
+    if(p.precio>0&&cant>0){total+=p.precio*cant;hayPrecios=true}
   });
   const box=document.getElementById('summaryBox');
   const tot=document.getElementById('summaryTotal');
@@ -622,7 +630,7 @@ async function enviarCotizacion(){
     nombre:p.nombre,
     sku:p.sku||'',
     unidad:p.unidad||'und',
-    cantidadRef:parseInt(document.getElementById('cant-'+i)?.value)||p.cantidadRef||1,
+    cantidadRef:_cantEfect(i,p),
     cantidadOriginal:p.cantidadRef,
     precio:noStock[i]?0:(parseFloat(document.getElementById('precio-'+i)?.value)||0),
     entregaDias:parseInt(document.getElementById('entrega-'+i)?.value)||null,
